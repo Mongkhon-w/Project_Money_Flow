@@ -14,7 +14,7 @@ version 1.0.3
 
 
 ## Develop by
-Mr.Tarawut & Teams
+Mr.Mongkhon & Teams
 * **Framework ที่เราใช้:** https://flutter.dev/
 * **ระยะเวลาพัฒนา:** 24 วัน (2026)
 * **Co-pilot Development & Issue Analysis** พัฒนาร่วมกับ Gemini AI

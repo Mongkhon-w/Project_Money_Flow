@@ -4,7 +4,7 @@
 version 1.0.3
 
 สร้างด้วย Flutter Framework บน AndroidStudio
-โปรเจคแรกสำหรับการศึกษา Flutter พัฒนาขึ้นในระยะเวลา 24 วัน
+โปรเจคแรกสำหรับการศึกษา Flutter 
 
 
 ## Feature หลัก
@@ -16,5 +16,4 @@ version 1.0.3
 ## Develop by
 Mr.Mongkhon & Teams
 * **Framework ที่เราใช้:** https://flutter.dev/
-* **ระยะเวลาพัฒนา:** 24 วัน (2026)
 * **Co-pilot Development & Issue Analysis** พัฒนาร่วมกับ Gemini AI

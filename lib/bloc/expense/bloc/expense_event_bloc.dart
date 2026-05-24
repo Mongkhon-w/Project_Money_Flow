@@ -1,18 +1,19 @@
+import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// ⚠️ ใช้ Relative Import (เรียกไฟล์ที่อยู่ข้างๆ กัน) เพื่อตัดปัญหา Ambiguous Import ทิ้งถาวร
 import 'expense_event_event.dart';
 import 'expense_event_state.dart';
 
-// ⚠️ เปลี่ยนชื่อคลาสตรงนี้เป็น ExpenseEventBloc ให้ตรงกับไฟล์อื่นๆ
 class ExpenseEventBloc extends Bloc<ExpenseEvent, ExpenseState> {
-  // ⚠️ เปลี่ยนชื่อ Constructor ให้ตรงกับชื่อคลาส
   ExpenseEventBloc() : super(ExpenseInitial()) {
     on<LoadExpenseData>(_onLoadExpenseData);
     on<UpdateExpenseData>(_onUpdateExpenseData);
     on<UpdateEmerFundRate>(_onUpdateEmerFundRate);
     on<ResetDataEvent>(_onResetData);
+    // --- [เพิ่ม Event ใหม่] ---
+    on<AddDailyExpense>(_onAddDailyExpense);
+    on<DeleteDailyExpense>(_onDeleteDailyExpense);
   }
 
   Future<void> _onLoadExpenseData(
@@ -27,16 +28,36 @@ class ExpenseEventBloc extends Bloc<ExpenseEvent, ExpenseState> {
         ? savedList.split(',')
         : List.filled(15, "");
 
+    // --- [โหลดรายจ่ายรายวันจาก JSON] ---
+    String? dailyStr = prefs.getString('daily_expenses');
+    List<Map<String, dynamic>> dailyExpenses = [];
+    double totalDailyExpense = 0.0;
+
+    if (dailyStr != null) {
+      List<dynamic> decoded = jsonDecode(dailyStr);
+      dailyExpenses = decoded.map((e) => e as Map<String, dynamic>).toList();
+      // คำนวณยอดรวมรายวัน
+      for (var item in dailyExpenses) {
+        totalDailyExpense += (item['amount'] as num).toDouble();
+      }
+    }
+
+    // คำนวณรายจ่ายสุทธิ (รายจ่ายคงที่จากหน้าแก้ไข + รายจ่ายรายวัน)
+    double fixedExpense = prefs.getDouble('totalExpense') ?? 0.0;
+    double overallExpense = fixedExpense + totalDailyExpense;
+
     emit(
       ExpenseLoaded(
         totalIncome: prefs.getDouble('totalIncome') ?? 0.0,
-        totalExpense: prefs.getDouble('totalExpense') ?? 0.0,
+        totalExpense: overallExpense, // ใช้ยอดรวมใหม่
         topIncome: prefs.getDouble('topIncome') ?? 0.0,
         topExpense: prefs.getDouble('topExpense') ?? 0.0,
         topIncomeName: prefs.getString('topIncome_n') ?? "n/a",
         topExpenseName: prefs.getString('topExpense_n') ?? "n/a",
         emerFundRate: prefs.getInt('emerfund_rate') ?? 3,
         rawData: rawData,
+        dailyExpenses: dailyExpenses,
+        totalDailyExpense: totalDailyExpense,
       ),
     );
   }
@@ -45,7 +66,6 @@ class ExpenseEventBloc extends Bloc<ExpenseEvent, ExpenseState> {
     UpdateExpenseData event,
     Emitter<ExpenseState> emit,
   ) async {
-    // โลจิก _calculateTotal() เดิมถูกย้ายมาที่นี่ทั้งหมด
     double tempExpense = 0;
     double tempIncome = 0;
     double temptopExpense = 0;
@@ -53,7 +73,6 @@ class ExpenseEventBloc extends Bloc<ExpenseEvent, ExpenseState> {
     String temptopExpenseName = "n/a";
     String temptopIncomeName = "n/a";
 
-    // สมมติฐานว่าข้อมูลเรียงตามฟอร์ม: 0-11 เป็นรายจ่าย, 12-14 เป็นรายรับ (อ้างอิงจากโค้ดเดิมของคุณ)
     List<String> labels = [
       "ค่าอาหาร/เครื่องดื่ม",
       "ค่ายารักษาโรค",
@@ -75,14 +94,12 @@ class ExpenseEventBloc extends Bloc<ExpenseEvent, ExpenseState> {
     for (int i = 0; i < event.rawData.length; i++) {
       double val = double.tryParse(event.rawData[i]) ?? 0;
       if (i >= 12) {
-        // โซนรายรับ
         tempIncome += val;
         if (val > temptopIncome) {
           temptopIncome = val;
           temptopIncomeName = labels[i];
         }
       } else {
-        // โซนรายจ่าย
         tempExpense += val;
         if (val > temptopExpense) {
           temptopExpense = val;
@@ -94,13 +111,15 @@ class ExpenseEventBloc extends Bloc<ExpenseEvent, ExpenseState> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('expense_list', event.rawData.join(','));
     await prefs.setDouble('totalIncome', tempIncome);
-    await prefs.setDouble('totalExpense', tempExpense);
+    await prefs.setDouble(
+      'totalExpense',
+      tempExpense,
+    ); // เซฟเฉพาะค่าใช้จ่ายคงที่
     await prefs.setDouble('topIncome', temptopIncome);
     await prefs.setDouble('topExpense', temptopExpense);
     await prefs.setString('topIncome_n', temptopIncomeName);
     await prefs.setString('topExpense_n', temptopExpenseName);
 
-    // โหลดข้อมูลขึ้นมาใหม่
     add(LoadExpenseData());
   }
 
@@ -110,6 +129,50 @@ class ExpenseEventBloc extends Bloc<ExpenseEvent, ExpenseState> {
   ) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('emerfund_rate', event.rate);
+    add(LoadExpenseData());
+  }
+
+  // --- [ฟังก์ชันเพิ่ม/ลบ รายจ่ายรายวัน] ---
+  Future<void> _onAddDailyExpense(
+    AddDailyExpense event,
+    Emitter<ExpenseState> emit,
+  ) async {
+    if (state is! ExpenseLoaded) return;
+    final currentState = state as ExpenseLoaded;
+
+    final newExpense = {
+      'id': DateTime.now().millisecondsSinceEpoch.toString(),
+      'amount': event.amount,
+      'note': event.note,
+      'date': DateTime.now().toIso8601String(),
+    };
+
+    // เอาของเดิมมา แล้วเพิ่มของใหม่ต่อท้าย
+    final updatedList = List<Map<String, dynamic>>.from(
+      currentState.dailyExpenses,
+    )..insert(0, newExpense);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('daily_expenses', jsonEncode(updatedList));
+
+    add(LoadExpenseData()); // สั่งรีโหลดเพื่อคำนวณใหม่
+  }
+
+  Future<void> _onDeleteDailyExpense(
+    DeleteDailyExpense event,
+    Emitter<ExpenseState> emit,
+  ) async {
+    if (state is! ExpenseLoaded) return;
+    final currentState = state as ExpenseLoaded;
+
+    // กรองเอาเฉพาะอันที่ ID ไม่ตรงกับที่กดลบ
+    final updatedList = currentState.dailyExpenses
+        .where((item) => item['id'] != event.id)
+        .toList();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('daily_expenses', jsonEncode(updatedList));
+
     add(LoadExpenseData());
   }
 

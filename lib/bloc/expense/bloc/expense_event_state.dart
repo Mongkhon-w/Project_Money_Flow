@@ -17,7 +17,11 @@ class ExpenseLoaded extends ExpenseState {
   final String topIncomeName;
   final String topExpenseName;
   final int emerFundRate;
-  final List<String> rawData; // ข้อมูลที่เก็บเป็น String List
+  final List<String> rawData;
+
+  // --- [ส่วนที่เพิ่มใหม่: เก็บข้อมูลรายวัน] ---
+  final List<Map<String, dynamic>> dailyExpenses;
+  final double totalDailyExpense;
 
   ExpenseLoaded({
     required this.totalIncome,
@@ -28,6 +32,8 @@ class ExpenseLoaded extends ExpenseState {
     required this.topExpenseName,
     required this.emerFundRate,
     required this.rawData,
+    required this.dailyExpenses,
+    required this.totalDailyExpense,
   });
 
   @override
@@ -40,5 +46,7 @@ class ExpenseLoaded extends ExpenseState {
     topExpenseName,
     emerFundRate,
     rawData,
+    dailyExpenses,
+    totalDailyExpense,
   ];
 }

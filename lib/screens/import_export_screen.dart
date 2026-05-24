@@ -19,7 +19,6 @@ class ImportExportScreen extends StatefulWidget {
 }
 
 class _ImportExportScreenState extends State<ImportExportScreen> {
-  // --- ฟังก์ชันส่งออกข้อมูล ---
   Future<void> exportData() async {
     List<String> values = widget.dataString.split(',');
     try {
@@ -63,7 +62,6 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     }
   }
 
-  // --- ฟังก์ชันนำเข้าข้อมูล ---
   Future<void> importData() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -98,15 +96,11 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
             .map((k) => importedData[k]?.toString() ?? "")
             .join(',');
 
-        // 1. บันทึกข้อมูลลง SharedPreferences ทับของเดิม
         await prefs.setString('expense_list', valuesString);
 
+        // โค้ดกลับมาอยู่ในฟังก์ชันอย่างถูกต้องแล้ว
         if (!mounted) return;
-
-        // 2. เปลี่ยนชื่อคลาสตรงนี้ให้เป็น ExpenseEventBloc ตามไฟล์ของคุณแล้วครับ
         context.read<ExpenseEventBloc>().add(LoadExpenseData());
-
-        // 3. ปิดหน้าจอ และส่งค่า true กลับไปให้รู้ว่า import สำเร็จ
         Navigator.pop(context, true);
       }
     } catch (e) {

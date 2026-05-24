@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
-// ⚠️ ลบการ Import แบบ package:flutter01/... ออกไปแล้ว เพื่อป้องกัน Ambiguous Import
+// Import BLoC ให้ครบเพื่อใช้สำหรับปุ่มลบประวัติ
+import '../bloc/expense/bloc/expense_event_bloc.dart';
+import '../bloc/expense/bloc/expense_event_event.dart';
 import '../bloc/expense/bloc/expense_event_state.dart';
 
 class OverviewScreen extends StatelessWidget {
@@ -17,8 +20,7 @@ class OverviewScreen extends StatelessWidget {
         'advisor':
             "ตอนนี้ยังไม่มีข้อมูลทางการเงินของคุณ กด 'แก้ไข' เพื่อเริ่มกรอกข้อมูลกันเถอะ!",
         'color': Colors.grey,
-        'image':
-            'asset/image/bg5.png', // ตรวจสอบ path รูปภาพให้ตรงกับโปรเจกต์คุณ
+        'image': 'asset/image/bg5.png',
       };
     } else if (ratio >= 55) {
       return {
@@ -74,7 +76,7 @@ class OverviewScreen extends StatelessWidget {
           width: double.infinity,
           height: double.infinity,
           decoration: BoxDecoration(
-            color: Colors.blueGrey, // ใส่สีเผื่อกรณีโหลดรูปไม่ขึ้น
+            color: Colors.blueGrey,
             image: DecorationImage(
               image: AssetImage(status['image']),
               fit: BoxFit.cover,
@@ -247,7 +249,80 @@ class OverviewScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                ],
+
+                  const SizedBox(height: 20),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "ประวัติรายจ่ายประจำวัน",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  if (state.dailyExpenses.isEmpty)
+                    const Text(
+                      "ยังไม่มีการจดรายจ่าย",
+                      style: TextStyle(color: Colors.grey),
+                    )
+                  else
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: state.dailyExpenses.length,
+                      itemBuilder: (context, index) {
+                        final item = state.dailyExpenses[index];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 5),
+                          child: ListTile(
+                            leading: const CircleAvatar(
+                              backgroundColor: Colors.redAccent,
+                              child: Icon(
+                                Icons.money_off,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                            title: Text(item['note'] ?? "ทั่วไป"),
+                            subtitle: Text(
+                              DateFormat(
+                                'dd MMM yyyy, HH:mm',
+                              ).format(DateTime.parse(item['date'])),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  "-฿${NumberFormat("#,###.00").format(item['amount'])}",
+                                  style: const TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete,
+                                    color: Colors.grey,
+                                    size: 20,
+                                  ),
+                                  onPressed: () {
+                                    context.read<ExpenseEventBloc>().add(
+                                      DeleteDailyExpense(item['id']),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  const SizedBox(height: 40),
+                ], // <-- วงเล็บปิดของ Column
               ),
             ),
           ),

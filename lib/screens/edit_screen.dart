@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
-// --- แก้ไขการ Import ซ้ำซ้อนให้เหลือแค่แบบเดียว ---
 import '../bloc/expense/bloc/expense_event_bloc.dart';
 import '../bloc/expense/bloc/expense_event_event.dart';
 import '../bloc/expense/bloc/expense_event_state.dart';
@@ -23,13 +22,11 @@ class _EditScreenState extends State<EditScreen> {
   @override
   void initState() {
     super.initState();
-    // สร้าง Controllers ตามจำนวนข้อมูล 15 ช่อง (Index 0 - 14)
     controllers = List.generate(
       15,
       (index) => TextEditingController(text: widget.state.rawData[index]),
     );
 
-    // แก้ไขบั๊ก Index เรียง 0-14 ให้ตรงกับฐานข้อมูล
     quizData = [
       {
         'title': 'ค่าอุปโภคบริโภค',
@@ -94,9 +91,7 @@ class _EditScreenState extends State<EditScreen> {
 
   void _saveToBloc() {
     List<String> newData = controllers.map((c) => c.text).toList();
-    context.read<ExpenseEventBloc>().add(
-      UpdateExpenseData(newData),
-    ); // เช็กชื่อ Bloc ให้ตรงกับของคุณด้วยนะครับ
+    context.read<ExpenseEventBloc>().add(UpdateExpenseData(newData));
   }
 
   void _showQuizSheet({required int startIndex, required int endIndex}) {
@@ -138,7 +133,6 @@ class _EditScreenState extends State<EditScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 30),
-
               if (quizData[currentStep]['fields'] != null &&
                   (quizData[currentStep]['fields'] as List).isNotEmpty)
                 ...(quizData[currentStep]['fields'] as List).map((field) {
@@ -168,7 +162,6 @@ class _EditScreenState extends State<EditScreen> {
                     ],
                   ),
                 ),
-
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -186,7 +179,6 @@ class _EditScreenState extends State<EditScreen> {
                     )
                   else
                     const SizedBox(width: 20),
-
                   Row(
                     children: [
                       if (currentStep < endIndex - 1)
@@ -222,7 +214,6 @@ class _EditScreenState extends State<EditScreen> {
     );
   }
 
-  // --- Widget ตัวช่วยสำหรับสร้างบรรทัดแสดงข้อมูล (เพื่อลดโค้ดซ้ำซ้อน) ---
   Widget _buildDataRow(String title, String value) {
     String displayValue = value.isEmpty ? '0.00' : value;
     return Padding(
@@ -246,16 +237,18 @@ class _EditScreenState extends State<EditScreen> {
       color: Colors.grey[300],
       child: Stack(
         children: [
-          // ปุ่มแก้ไขอยู่ด้านบน
           Align(
             alignment: Alignment.topCenter,
             child: Padding(
-              padding: const EdgeInsets.only(top: 50),
+              padding: const EdgeInsets.only(
+                top: 30,
+              ), // ลดระยะห่างบนนิดนึงให้พอดี 3 ปุ่ม
               child: Column(
                 children: [
+                  // ปุ่มที่ 1: รายจ่ายรายเดือน
                   SizedBox(
                     width: 350,
-                    height: 70,
+                    height: 60,
                     child: ElevatedButton.icon(
                       icon: const Icon(
                         Icons.edit_note,
@@ -280,10 +273,11 @@ class _EditScreenState extends State<EditScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 20),
+                  // ปุ่มที่ 2: รายรับ
                   SizedBox(
                     width: 350,
-                    height: 70,
+                    height: 60,
                     child: ElevatedButton.icon(
                       icon: const Icon(
                         Icons.edit_note,
@@ -308,15 +302,98 @@ class _EditScreenState extends State<EditScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  // ⚠️ ปุ่มที่ 3: จดรายจ่ายรายวัน (เพิ่มใหม่)
+                  SizedBox(
+                    width: 350,
+                    height: 60,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(
+                        Icons.add_circle_outline,
+                        color: Colors.blue,
+                        size: 24,
+                      ),
+                      onPressed: () {
+                        // ดึงระบบ Popup กรอกเงินมาไว้ตรงนี้
+                        TextEditingController amountCtrl =
+                            TextEditingController();
+                        TextEditingController noteCtrl =
+                            TextEditingController();
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text("จดรายจ่ายวันนี้"),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                TextField(
+                                  controller: amountCtrl,
+                                  keyboardType: TextInputType.number,
+                                  decoration: const InputDecoration(
+                                    labelText: "จำนวนเงิน (บาท)",
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                TextField(
+                                  controller: noteCtrl,
+                                  decoration: const InputDecoration(
+                                    labelText: "หมวดหมู่ / บันทึกย่อ",
+                                  ),
+                                ),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                child: const Text("ยกเลิก"),
+                              ),
+                              ElevatedButton(
+                                onPressed: () {
+                                  double amount =
+                                      double.tryParse(amountCtrl.text) ?? 0;
+                                  if (amount > 0) {
+                                    context.read<ExpenseEventBloc>().add(
+                                      AddDailyExpense(
+                                        amount: amount,
+                                        note: noteCtrl.text.isEmpty
+                                            ? "ทั่วไป"
+                                            : noteCtrl.text,
+                                      ),
+                                    );
+                                  }
+                                  Navigator.pop(ctx);
+                                },
+                                child: const Text("บันทึก"),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      label: const Text(
+                        "จดรายจ่ายประจำวัน",
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
 
-          // --- DraggableScrollableSheet โฉมใหม่ ดึงข้อมูลจาก BLoC State ---
           DraggableScrollableSheet(
-            initialChildSize: 0.65,
-            minChildSize: 0.6,
+            initialChildSize:
+                0.55, // ปรับยุบลงมานิดนึงเพื่อให้เห็นปุ่มด้านบนครบ
+            minChildSize: 0.5,
             maxChildSize: 0.97,
             builder: (context, scrollController) {
               return Container(
@@ -355,8 +432,6 @@ class _EditScreenState extends State<EditScreen> {
                         ],
                       ),
                     ),
-
-                    // เรียกใช้ฟังก์ชันตัวช่วยเพื่อสร้างบรรทัดรายจ่าย (Index 0-11)
                     _buildDataRow(
                       "ค่าอาหาร/เครื่องดื่ม",
                       widget.state.rawData[0],
@@ -396,7 +471,6 @@ class _EditScreenState extends State<EditScreen> {
                     _buildDataRow("ค่าผ่อนรถ", widget.state.rawData[9]),
                     _buildDataRow("ค่าบัตรเครดิต", widget.state.rawData[10]),
                     _buildDataRow("หนี้สิน", widget.state.rawData[11]),
-
                     const SizedBox(height: 20),
                     Center(
                       child: Column(
@@ -414,8 +488,6 @@ class _EditScreenState extends State<EditScreen> {
                         ],
                       ),
                     ),
-
-                    // สร้างบรรทัดรายรับ (Index 12-14)
                     _buildDataRow(
                       "รายได้จากอาชีพหลัก",
                       widget.state.rawData[12],
@@ -428,8 +500,7 @@ class _EditScreenState extends State<EditScreen> {
                       "รายได้จากการลงทุน",
                       widget.state.rawData[14],
                     ),
-
-                    const SizedBox(height: 100), // เว้นที่ว่างด้านล่าง
+                    const SizedBox(height: 100),
                   ],
                 ),
               );

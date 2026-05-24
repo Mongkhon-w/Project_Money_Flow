@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-// แก้ไขเครื่องหมาย // ออกให้เหลือสแลชตัวเดียวแล้วครับ
 import '../bloc/expense/bloc/expense_event_bloc.dart';
 import '../bloc/expense/bloc/expense_event_event.dart';
 
@@ -13,7 +12,7 @@ class ConfirmResetScreen extends StatefulWidget {
 }
 
 class _ConfirmResetScreenState extends State<ConfirmResetScreen> {
-  // 1. ประกาศตัวแปร isInputMatch ไว้ที่นี่
+  // ตัวแปรต้องประกาศไว้ในคลาส
   bool isInputMatch = false;
 
   @override
@@ -33,8 +32,6 @@ class _ConfirmResetScreenState extends State<ConfirmResetScreen> {
                 "หากต้องการรีเซ็ทข้อมูลทั้งหมด โปรดพิมพ์ 'ตกลง' เพื่อล้างข้อมูล",
               ),
               const SizedBox(height: 30),
-
-              // TextField สำหรับพิมพ์คำว่า "ตกลง"
               TextField(
                 decoration: InputDecoration(
                   filled: true,
@@ -48,32 +45,26 @@ class _ConfirmResetScreenState extends State<ConfirmResetScreen> {
                   ),
                 ),
                 onChanged: (value) {
-                  // 2. อัปเดตสถานะตัวแปรเมื่อมีการพิมพ์
                   setState(() {
                     isInputMatch = (value == "ตกลง");
                   });
                 },
               ),
               const SizedBox(height: 30),
-
-              // 3. โค้ดปุ่มของคุณที่จับเข้ามาอยู่ใน Build method อย่างถูกต้อง
               ElevatedButton(
+                // ปุ่มอยู่ตรงนี้ ภายใน build method
                 onPressed: isInputMatch
                     ? () {
-                        // ส่ง Event ไปเคลียร์ข้อมูลผ่าน BLoC
-                        // หมายเหตุ: ถ้าคลาส Bloc ของคุณชื่อ ExpenseEventBloc ให้แก้ตรงนี้ด้วยนะครับ
                         context.read<ExpenseEventBloc>().add(ResetDataEvent());
-
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text("รีเซ็ทข้อมูลเสร็จสิ้น"),
                             backgroundColor: Colors.green,
                           ),
                         );
-                        // เด้งกลับไปหน้าก่อนหน้า (Settings)
                         Navigator.pop(context);
                       }
-                    : null, // ถ้าพิมพ์ไม่ตรงปุ่มจะกดไม่ได้ (เป็นสีเทา)
+                    : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,

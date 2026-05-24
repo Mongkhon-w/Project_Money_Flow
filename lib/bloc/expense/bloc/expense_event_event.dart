@@ -8,7 +8,7 @@ abstract class ExpenseEvent extends Equatable {
 class LoadExpenseData extends ExpenseEvent {}
 
 class UpdateExpenseData extends ExpenseEvent {
-  final List<String> rawData; // ข้อมูลจาก 15 TextControllers
+  final List<String> rawData;
   UpdateExpenseData(this.rawData);
 }
 
@@ -18,3 +18,15 @@ class UpdateEmerFundRate extends ExpenseEvent {
 }
 
 class ResetDataEvent extends ExpenseEvent {}
+
+// --- [ส่วนที่เพิ่มใหม่: Event สำหรับรายจ่ายรายวัน] ---
+class AddDailyExpense extends ExpenseEvent {
+  final double amount;
+  final String note;
+  AddDailyExpense({required this.amount, required this.note});
+}
+
+class DeleteDailyExpense extends ExpenseEvent {
+  final String id;
+  DeleteDailyExpense(this.id);
+}
